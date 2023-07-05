@@ -1,9 +1,7 @@
 version: "3.9"
 services:
   worker:
-    container_name: k0s
-    hostname: k0s
-    image: docker.io/k0sproject/k0s:latest
+    image: k0sproject/k0s:v1.27.2-k0s.0
     command: k0s worker --token-file /tmp/usva/token
     privileged: true
     cgroup: host

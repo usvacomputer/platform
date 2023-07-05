@@ -86,7 +86,8 @@ esac
 
 case "$subcommand" in
   workers:docker:up)
-    docker compose up
+    amount=${2:-1}
+    docker compose up --scale "worker=$amount"
   ;;
   workers:docker:down)
     docker compose down -v
