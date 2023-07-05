@@ -1,12 +1,16 @@
 version: "3.9"
 services:
   worker:
+    container_name: k0s
+    hostname: k0s
     image: docker.io/k0sproject/k0s:latest
-    command: k0s worker --token-file /tmp/token
+    command: k0s worker --token-file /tmp/usva/token
     privileged: true
+    cgroup: host
     volumes:
       - "/var/lib/k0s"
-      - /tmp/usva-join-token:/tmp/token
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /tmp/usva/token:/tmp/usva/token
     tmpfs:
       - /run
       - /var/run

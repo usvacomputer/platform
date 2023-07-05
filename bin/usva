@@ -95,7 +95,8 @@ esac
 
 case "$subcommand" in
   workers:lima:launch)
-    name="usva-worker-$(uuidgen)"
+    uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
+    name="usva-worker-${uuid}"
     limactl start --name "$name" - < workers/lima/ubuntu-lts.yml || true
     cp workers/lima/install.sh /tmp/usva
     limactl shell "$name" /tmp/usva/install.sh
@@ -105,6 +106,7 @@ case "$subcommand" in
     for name in $names
     do
       limactl delete -f "$name"
+      kubectl --kubeconfig="$HOME/.kube/usva-shard-1" get node "lima-$name"
     done
   ;;
 esac
