@@ -94,12 +94,17 @@ case "$subcommand" in
 esac
 
 case "$subcommand" in
-  workers:lima:up)
-    limactl start --name usva-worker-1 - < workers/lima/ubuntu-lts.yml || true
+  workers:lima:launch)
+    name="usva-worker-$(uuidgen)"
+    limactl start --name "$name" - < workers/lima/ubuntu-lts.yml || true
     cp workers/lima/install.sh /tmp/usva
-    limactl shell usva-worker-1 /tmp/usva/install.sh
+    limactl shell "$name" /tmp/usva/install.sh
   ;;
-  workers:lima:down)
-    limactl delete -f usva-worker-1
+  workers:lima:destroy)
+    names=$(limactl list --format '{{ .Name }}' | grep usva-worker-)
+    for name in $names
+    do
+      limactl delete -f "$name"
+    done
   ;;
 esac

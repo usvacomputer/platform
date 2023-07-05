@@ -6,4 +6,4 @@ set `KUBECONFIG` and
 
 then
 
-`bin/usva workers:lima:up`
+`bin/usva workers:lima:launch`

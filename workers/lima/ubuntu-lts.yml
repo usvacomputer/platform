@@ -1,3 +1,7 @@
+cpus: 1
+memory: 1GiB
+disk: 10GiB
+
 images:
   - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"
     arch: "x86_64"
