@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  worker:
+    image: docker.io/k0sproject/k0s:latest
+    command: k0s worker --token-file /tmp/token
+    privileged: true
+    volumes:
+      - "/var/lib/k0s"
+      - /tmp/usva-join-token:/tmp/token
+    tmpfs:
+      - /run
+      - /var/run
+    network_mode: "bridge"

@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+set -eEuo pipefail
+
+_log() {
+  echo "${SECONDS} - $*"
+}
+
+subcommand=${1:-help}
+
+handled=yes
+case "$subcommand" in
+  install)
+    kubectl apply -f k8s
+
+    _log "applied yamls"
+
+
+    while true
+    do
+      ip=$(kubectl get svc kmc-usva-shard-1-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || true)
+
+      [[ "$ip" != "" ]] && break
+      sleep 1
+
+      _log "lb ip pending"
+    done
+
+    _log "lb ip: $ip"
+
+    while true
+    do
+      kubectl get secret usva-shard-1-kubeconfig -o jsonpath='{.data.value}' | base64 -d | tee "$HOME/.kube/usva-shard-1" && break
+      sleep 1
+    done
+
+    _log "got kubeconfig"
+
+    while true
+    do
+      mkdir /tmp/usva || true
+      kubectl get secret usva-shard-1 -o jsonpath='{.data.token}' | base64 -d | tee "/tmp/usva/token" && break
+      sleep 1
+    done
+
+    _log "got join token"
+  ;;
+  uninstall)
+    $0 workers:docker:down
+    $0 workers:lima:down
+
+    kubectl delete jointokenrequest usva-shard-1 || true
+    kubectl delete cluster usva-shard-1 || true
+
+    while true
+    do
+      kubectl get svc kmc-usva-shard-1-lb || break
+      sleep 1
+    done
+
+    _log "clear"
+  ;;
+  help)
+    echo "wat"
+    exit 0
+  ;;
+  *)
+    handled=no
+  ;;
+esac
+
+[[ "$handled" == "yes" ]] && exit 0
+
+case "$subcommand" in
+  workers:docker:*)
+    pushd workers/docker
+  ;;
+  workers:lima:*)
+    :
+  ;;
+  *)
+    echo "wat"
+    exit 1
+  ;;
+esac
+
+case "$subcommand" in
+  workers:docker:up)
+    docker compose up
+  ;;
+  workers:docker:down)
+    docker compose down -v
+  ;;
+esac
+
+case "$subcommand" in
+  workers:lima:up)
+    limactl start --name usva-worker-1 - < workers/lima/ubuntu-lts.yml || true
+    cp workers/lima/install.sh /tmp/usva
+    limactl shell usva-worker-1 /tmp/usva/install.sh
+  ;;
+  workers:lima:down)
+    limactl delete -f usva-worker-1
+  ;;
+esac
