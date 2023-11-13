@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beacon
+  labels:
+    app: beacon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beacon
+  template:
+    metadata:
+      labels:
+        app: beacon
+    spec:
+      serviceAccountName: beacon
+      containers:
+        - name: beacon
+          image: mattipaksula/beacon
+          resources:
+            requests:
+              cpu: 1m
+              memory: 128Mi
+            limits:
+              cpu: 1
+              memory: 128Mi
+          env:
+            - name: USVA_ENV
+              value: matti-1
+            - name: USVA_DOMAIN
+              value: usva.io
+            - name: CLOUDFLARE_ACCOUNT_TAG
+              value: 4b3b36008b91159f5300485b679600ec
+          volumeMounts:
+            - name: beacon-cloudflare-pem
+              mountPath: /root/.cloudflared/cert.pem
+              subPath: cert.pem
+              readOnly: true
+      volumes:
+        - name: beacon-cloudflare-pem
+          secret:
+            secretName: beacon-cloudflare-pem

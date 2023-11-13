@@ -1,0 +1,28 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: beacon
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: beacon
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: beacon
+roleRef:
+  kind: ClusterRole
+  name: beacon
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: beacon
+    namespace: default

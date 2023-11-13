@@ -1,0 +1,24 @@
+apiVersion: skaffold/v4beta8
+kind: Config
+metadata:
+  name: platform
+build:
+  artifacts:
+    - image: mattipaksula/beacon
+      context: components/beacon
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: "app/**/*"
+            dest: /
+manifests:
+  rawYaml:
+    - components/beacon/k8s/deployment.yml
+    - components/beacon/k8s/rbac.yml
+portForward:
+  - resourceType: deployment
+    resourceName: beacon
+    namespace: default
+    port: 8080
+    localPort: 8080
