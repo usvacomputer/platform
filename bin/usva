@@ -37,6 +37,10 @@ case "$subcommand" in
   start)
     mkdir -p /tmp/usva/bootstrap
 
+    if [[ ! -f vendor/arm64/k0s ]]; then
+      curl -Lf -o vendor/arm64/k0s https://github.com/k0sproject/k0s/releases/download/v1.28.3%2Bk0s.0/k0s-v1.28.3+k0s.0-arm64
+    fi
+
     chmod +x vendor/arm64/k0s
     chmod +x bootstrap.sh
 
