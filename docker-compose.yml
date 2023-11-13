@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  magico:
+    image: mattipaksula/magico:5
+    build: components/magico
+    env_file:
+      - .env.magico
+    volumes:
+      - ./components/magico/app:/app
+      - ./cloudflare/cert.pem:/cert.pem
+    ports:
+      - 8080:8080

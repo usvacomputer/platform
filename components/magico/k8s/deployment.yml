@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: magico
+  labels:
+    app: magico
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: magico
+  template:
+    metadata:
+      labels:
+        app: magico
+    spec:
+      containers:
+        - name: magico
+          image: mattipaksula/magico:5
+          env:
+            - name: CLOUDFLARE_ACCOUNT_TAG
+              value: asdf
+            - name: CLOUDFLARE_TUNNEL_SECRET
+              value: asdf
+            - name: CLOUDFLARE_TUNNEL_ID
+              value: asdf

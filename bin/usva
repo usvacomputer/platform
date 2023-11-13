@@ -1,68 +1,59 @@
 #!/usr/bin/env bash
-
 set -eEuo pipefail
 
-_log() {
-  echo "${SECONDS} - $*"
+_on_error() {
+  trap '' ERR
+  line_path=$(caller)
+  line=${line_path% *}
+  path=${line_path#* }
+
+  echo ""
+  echo "ERR $path:$line $BASH_COMMAND exited with $1"
+  _shutdown 1
 }
+trap '_on_error $?' ERR
+
+_shutdown() {
+  trap '' TERM INT
+  echo "shutdown: $1"
+
+  kill 0
+  wait
+  exit 0
+}
+trap '_shutdown 0' TERM INT
+
+export KUBECONFIG=/tmp/usva/kubeconfig
 
 subcommand=${1:-help}
-
 handled=yes
 case "$subcommand" in
-  install)
-    kubectl apply -f k8s
+  reset)
+    limactl delete -f usva-mcp || true
+    rm -rf /tmp/usva || true
 
-    _log "applied yamls"
-
-
-    while true
-    do
-      ip=$(kubectl get svc kmc-usva-shard-1-lb -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || true)
-
-      [[ "$ip" != "" ]] && break
-      sleep 1
-
-      _log "lb ip pending"
-    done
-
-    _log "lb ip: $ip"
-
-    while true
-    do
-      kubectl get secret usva-shard-1-kubeconfig -o jsonpath='{.data.value}' | base64 -d | tee "$HOME/.kube/usva-shard-1" && break
-      sleep 1
-    done
-
-    _log "got kubeconfig"
-
-    while true
-    do
-      mkdir /tmp/usva || true
-      kubectl get secret usva-shard-1 -o jsonpath='{.data.token}' | base64 -d | tee "/tmp/usva/token" && break
-      sleep 1
-    done
-
-    _log "got join token"
+    echo "clean"
   ;;
-  uninstall)
-    $0 workers:docker:down
-    $0 workers:lima:down
+  start)
+    mkdir -p /tmp/usva/bootstrap
 
-    kubectl delete jointokenrequest usva-shard-1 || true
-    kubectl delete cluster usva-shard-1 || true
+    chmod +x vendor/arm64/k0s
+    chmod +x bootstrap.sh
 
-    while true
-    do
-      kubectl get svc kmc-usva-shard-1-lb || break
-      sleep 1
-    done
+    cp vendor/arm64/k0s /tmp/usva/bootstrap
+    cp bootstrap.sh /tmp/usva/bootstrap/bootstrap.sh
 
-    _log "clear"
+    limactl start --name usva-mcp - < components/mcp/lima.yml
+    limactl shell usva-mcp -- sudo /tmp/usva/bootstrap/bootstrap.sh
+  ;;
+  k0smotron)
+    exec kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml
+  ;;
+  kubectl)
+    exec kubectl ${*:2}
   ;;
   help)
-    echo "wat"
-    exit 0
+    echo "help"
   ;;
   *)
     handled=no
@@ -71,43 +62,5 @@ esac
 
 [[ "$handled" == "yes" ]] && exit 0
 
-case "$subcommand" in
-  workers:docker:*)
-    pushd workers/docker
-  ;;
-  workers:lima:*)
-    :
-  ;;
-  *)
-    echo "wat"
-    exit 1
-  ;;
-esac
-
-case "$subcommand" in
-  workers:docker:up)
-    amount=${2:-1}
-    docker compose up --scale "worker=$amount"
-  ;;
-  workers:docker:down)
-    docker compose down -v
-  ;;
-esac
-
-case "$subcommand" in
-  workers:lima:launch)
-    uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
-    name="usva-worker-${uuid}"
-    limactl start --name "$name" - < workers/lima/ubuntu-lts.yml || true
-    cp workers/lima/install.sh /tmp/usva
-    limactl shell "$name" /tmp/usva/install.sh
-  ;;
-  workers:lima:destroy)
-    names=$(limactl list --format '{{ .Name }}' | grep usva-worker-)
-    for name in $names
-    do
-      limactl delete -f "$name"
-      kubectl --kubeconfig="$HOME/.kube/usva-shard-1" get node "lima-$name"
-    done
-  ;;
-esac
+echo "unknown subcommand: $subcommand"
+exit 1

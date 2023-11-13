@@ -1,5 +1,7 @@
+# https://github.com/lima-vm/lima/blob/master/examples/default.yaml
+
 cpus: 1
-memory: 1GiB
+memory: 2GiB
 disk: 10GiB
 
 images:
@@ -11,3 +13,11 @@ images:
 mounts:
   - location: "/tmp/usva"
     writable: true
+
+networks:
+  - lima: shared
+    macAddress: de:ad:be:ef:00:01
+
+portForwards:
+  - guestPort: 6443
+    hostPort: 6443

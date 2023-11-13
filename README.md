@@ -1,9 +1,5 @@
-# usva platform
+# usva
 
-set `KUBECONFIG` and
-
-`bin/usva install`
-
-then
-
-`bin/usva workers:lima:launch`
+```console
+chisel client --auth magico:sekret https://test-1.usva.io 6443:kmc-test-1:30443
+```
