@@ -2,7 +2,7 @@
 
 set -eEuo pipefail
 
-cp /tmp/usva/bootstrap/k0s /usr/local/bin
+cp /tmp/usva/mcp/bootstrap/k0s /usr/local/bin
 
 k0s install controller --single
 systemctl daemon-reload
@@ -13,4 +13,6 @@ until [[ -f /var/lib/k0s/pki/admin.conf ]] ; do
   sleep 1
 done
 
-cp /var/lib/k0s/pki/admin.conf /tmp/usva/kubeconfig
+cp /var/lib/k0s/pki/admin.conf /tmp/usva/mcp/kubeconfig
+
+echo "KUBECONFIG in /tmp/usva/kubeconfig"

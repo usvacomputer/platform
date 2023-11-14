@@ -23,7 +23,7 @@ _shutdown() {
 }
 trap '_shutdown 0' TERM INT
 
-export KUBECONFIG=/tmp/usva/kubeconfig
+export KUBECONFIG=/tmp/usva/mcp/kubeconfig
 
 subcommand=${1:-help}
 handled=yes
@@ -34,24 +34,103 @@ case "$subcommand" in
 
     echo "clean"
   ;;
-  start)
-    mkdir -p /tmp/usva/bootstrap
+  lima:mcp)
+    mkdir -p /tmp/usva/mcp/bootstrap
 
-    if [[ ! -f vendor/arm64/k0s ]]; then
+    if [[ ! -f vendor/arm64/k0s-v1.28.3 ]]; then
       curl -Lf -o vendor/arm64/k0s https://github.com/k0sproject/k0s/releases/download/v1.28.3%2Bk0s.0/k0s-v1.28.3+k0s.0-arm64
     fi
 
-    chmod +x vendor/arm64/k0s
-    chmod +x bootstrap.sh
+    chmod +x vendor/arm64/k0s-v1.28.3
+    cp vendor/arm64/k0s-v1.28.3 /tmp/usva/mcp/bootstrap/k0s
 
-    cp vendor/arm64/k0s /tmp/usva/bootstrap
-    cp bootstrap.sh /tmp/usva/bootstrap/bootstrap.sh
+    chmod +x lima/mcp/bootstrap.sh
+    cp lima/mcp/bootstrap.sh /tmp/usva/mcp/bootstrap/bootstrap.sh
 
-    limactl start --name usva-mcp - < components/mcp/lima.yml
-    limactl shell usva-mcp -- sudo /tmp/usva/bootstrap/bootstrap.sh
+    limactl start --name usva-mcp - < lima/mcp/lima.yml
+    limactl shell usva-mcp -- sudo /tmp/usva/mcp/bootstrap/bootstrap.sh
+
+    limactl shell usva-mcp -- sudo cp /var/lib/k0s/pki/admin.conf "$KUBECONFIG"
+
+    until kubectl get node; do
+      sleep 1
+    done
+
+    while true; do
+      echo """
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: puller
+  namespace: kube-system
+  labels:
+    k8s-app: puller
+spec:
+  selector:
+    matchLabels:
+      name: puller
+  template:
+    metadata:
+      labels:
+        name: puller
+    spec:
+      containers:
+      - name: k0s
+        image: k0sproject/k0s:v1.27.2-k0s.0
+        command:
+          - /usr/bin/tail
+          - -f
+          - /dev/null
+      - name: magico
+        image: mattipaksula/magico:5
+        command:
+          - /usr/bin/tail
+          - -f
+          - /dev/null
+""" | kubectl apply -f - && break
+      sleep 1
+    done
+
+    if ! kubectl get secret beacon-cloudflare-pem ; then
+      kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem
+    fi
+
+    until kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml ; do
+      sleep 1
+    done
+
+    while true; do
+      kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml && break
+      sleep 1
+    done
+
+    while true; do
+      echo """
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: pool-1
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.10.0/24
+""" | kubectl apply -f - && break
+    done
   ;;
-  k0smotron)
-    exec kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml
+  dev)
+    skaffold dev
+  ;;
+  shell)
+    while true; do
+      pod=$(
+        kubectl get pod -l app=beacon -o jsonpath='{.items[0].metadata.name}'
+      )
+
+      while true; do
+        kubectl exec -it "$pod" -- bash && break
+        sleep 1
+      done
+    done
   ;;
   kubectl)
     exec kubectl ${*:2}

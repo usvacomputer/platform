@@ -3,8 +3,7 @@ set -eEuo pipefail
 source /app/helpers/functions.sh
 
 CLUSTER_NAME=$1
-API_PORT=$2
-KONNECTIVITY_PORT=$3
+
 
 echo """
 apiVersion: k0smotron.io/v1beta1
@@ -12,10 +11,9 @@ kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
+  externalAddress: 10.20.30.40
   service:
-    type: NodePort
-    apiPort: ${API_PORT}
-    konnectivityPort: ${KONNECTIVITY_PORT}
+    type: LoadBalancer
 """ | 1>&2 kubectl apply -f -
 
 while true; do

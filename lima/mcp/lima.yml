@@ -1,8 +1,8 @@
 # https://github.com/lima-vm/lima/blob/master/examples/default.yaml
 
-cpus: 1
-memory: 2GiB
-disk: 10GiB
+cpus: 4
+memory: 4GiB
+disk: 20GiB
 
 images:
   - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img"
@@ -11,7 +11,7 @@ images:
     arch: "aarch64"
 
 mounts:
-  - location: "/tmp/usva"
+  - location: "/tmp/usva/mcp"
     writable: true
 
 networks:

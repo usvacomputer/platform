@@ -1,6 +1,5 @@
 FROM ubuntu:22.04 as installer
 ARG TARGETARCH
-
 RUN set -eux ; \
   apt-get update ; \
   apt-get install -y --no-install-recommends \

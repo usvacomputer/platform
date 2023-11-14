@@ -5,7 +5,7 @@ source /app/helpers/functions.sh
 tunnel_name=$1
 tunnel_secret=$2
 tunnel_secret_base64=$(
-  echo "$tunnel_secret" | base64
+  echo "$tunnel_secret" | base64 --wrap=0
 )
 
 tunnel_dns_name="${tunnel_name}.${USVA_DOMAIN}"

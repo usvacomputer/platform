@@ -46,8 +46,6 @@ case "$subcommand" in
       exec cloudflared tunnel --no-autoupdate run --url http://127.0.0.1:8080 "$tunnel_id"
     ) >/tmp/cloudflared.log 2>&1 &
 
-    kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml
-
     exec reflex -v -t 3s -s ruby /app/beacon.rb
   ;;
   *)

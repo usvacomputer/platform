@@ -20,3 +20,10 @@ while true; do
   >/dev/null 2>&1 kubectl get service "$service_name" || break
   kubectl delete service "$service_name" || true
 done
+
+while true; do
+  >/dev/null 2>&1 kubectl get jointokenrequest "$name" || break
+  kubectl delete jointokenrequest "$name" || true
+done
+
+cloudflared tunnel --no-autoupdate delete "${USVA_ENV}-k-${name}"

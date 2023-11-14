@@ -3,7 +3,6 @@ set -eEuo pipefail
 source /app/helpers/functions.sh
 
 CLUSTER_NAME=$1
-PORT=$2
 
 tunnel_name="${USVA_ENV}-k-${CLUSTER_NAME}"
 tunnel_secret="${USVA_ENV}-k-${CLUSTER_NAME}-secret-schmecrets-lollers-catters-bomb"
@@ -29,9 +28,14 @@ spec:
     app: k0smotron
     cluster: ${CLUSTER_NAME}
   ports:
-    - protocol: TCP
-      port: 6443
-      targetPort: ${PORT}
+    - name: api
+      protocol: TCP
+      port: 30443
+      targetPort: 30443
+    - name: konnektivity
+      protocol: TCP
+      port: 30132
+      targetPort: 30132
 """ | 1>&2 kubectl apply -f -
 
 echo """

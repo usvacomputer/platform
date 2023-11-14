@@ -29,5 +29,27 @@ services:
     ports:
       - 8080:8080
 
+  worker:
+    build:
+      context: components/worker
+      x-bake:
+        tags:
+          - ghcr.io/${GITHUB_REPOSITORY}/worker:latest
+          - ghcr.io/${GITHUB_REPOSITORY}/worker:${GITHUB_SHA}
+        platforms:
+          - linux/amd64
+          - linux/arm64
+    env_file:
+      - .env.worker
+    privileged: true
+    volumes:
+      - /var/lib/k0s
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /run
+      - /var/run
+    cgroup: host
+    network_mode: "bridge"
+
 volumes:
   mcp-var-lib-k0s:
