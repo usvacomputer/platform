@@ -46,7 +46,7 @@ case "$subcommand" in
       exec cloudflared tunnel --no-autoupdate run --url http://127.0.0.1:8080 "$tunnel_id"
     ) >/tmp/cloudflared.log 2>&1 &
 
-    exec reflex -v -t 3s -s ruby /app/beacon.rb
+    exec reflex -v -t 3s -s bundle exec ruby /app/beacon.rb
   ;;
   *)
     echo "unknown subcommand: $subcommand"

@@ -12,6 +12,7 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   externalAddress: 10.20.30.40
+  k0sVersion: v1.28.3-k0s.0
   service:
     type: LoadBalancer
 """ | 1>&2 kubectl apply -f -

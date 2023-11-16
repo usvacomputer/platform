@@ -76,7 +76,7 @@ spec:
     spec:
       containers:
       - name: k0s
-        image: k0sproject/k0s:v1.27.2-k0s.0
+        image: k0sproject/k0s:v1.28.3-k0s.0
         command:
           - /usr/bin/tail
           - -f
@@ -91,16 +91,16 @@ spec:
       sleep 1
     done
 
-    if ! kubectl get secret beacon-cloudflare-pem ; then
-      kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem
-    fi
+    until kubectl get secret beacon-cloudflare-pem ; do
+      kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem || true
+      sleep 1
+    done
 
     until kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml ; do
       sleep 1
     done
 
-    while true; do
-      kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml && break
+    until kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml ; do
       sleep 1
     done
 
@@ -115,10 +115,33 @@ spec:
   addresses:
   - 192.168.10.0/24
 """ | kubectl apply -f - && break
+      sleep 1
     done
+
+    exec $0 dev
   ;;
   dev)
-    skaffold dev
+    while true; do
+      skaffold dev || true
+      sleep 1
+    done
+  ;;
+  tunnel)
+    while true; do
+      curl -Lf --max-time 10 matti-1-beacon.usva.io/v1/cluster/default/kubeconfig > "$HOME/.kube/default" && break
+      sleep 1
+    done
+
+    while true; do
+      curl -Lf --max-time 10 -o /tmp/usva-default-chisel.sh matti-1-beacon.usva.io/v1/cluster/default/chisel.sh && break
+      sleep 1
+    done
+
+    while true; do
+      chmod +x /tmp/usva-default-chisel.sh
+      /tmp/usva-default-chisel.sh || true
+      sleep 1
+    done
   ;;
   shell)
     while true; do
@@ -134,6 +157,11 @@ spec:
   ;;
   kubectl)
     exec kubectl ${*:2}
+  ;;
+  worker)
+    while true ; do
+      docker compose run --build worker || true
+    done
   ;;
   help)
     echo "help"
