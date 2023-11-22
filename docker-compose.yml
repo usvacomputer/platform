@@ -29,9 +29,9 @@ services:
   #   ports:
   #     - 8080:8080
 
-  beacon:
-    build: components/beacon
-    image: mattipaksula/beacon:latest
+  # beacon:
+  #   build: components/beacon
+  #   image: mattipaksula/beacon:latest
 
   worker:
     build:
