@@ -81,10 +81,14 @@ done
 echo ""
 echo "got kube api accesss"
 
-until k0s kubectl apply -f https://raw.githubusercontent.com/matti/k8s-unreachable-node-cleaner/main/k8s/all.yml ; do
-  echo "can not apply k8s-unreachable-node-cleaner, retrying..."
-  sleep 1
-done
+(
+  until k0s kubectl apply -f https://raw.githubusercontent.com/matti/k8s-unreachable-node-cleaner/main/k8s/all.yml ; do
+    echo "can not apply k8s-unreachable-node-cleaner, retrying..."
+    sleep 1
+  done
+
+  echo "done"
+) 2>&1 | sed -le "s#^#k8s-unreachable-node-cleaner: #;" &
 
 echo "launching k0s:"
 exec k0s worker --debug --verbose --token-file /jointoken
