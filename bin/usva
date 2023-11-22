@@ -45,61 +45,20 @@ case "$subcommand" in
     cp vendor/arm64/k0s-v1.28.3 /tmp/usva/mcp/bootstrap/k0s
 
     chmod +x lima/mcp/bootstrap.sh
-    cp lima/mcp/bootstrap.sh /tmp/usva/mcp/bootstrap/bootstrap.sh
+    cp lima/mcp/bootstrap.sh /tmp/usva/mcp/bootstrap
+
+    chmod +x lima/mcp/async.sh
+    cp lima/mcp/async.sh /tmp/usva/mcp/bootstrap
+
 
     limactl start --name usva-mcp - < lima/mcp/lima.yml
-    limactl shell usva-mcp -- sudo /tmp/usva/mcp/bootstrap/bootstrap.sh
 
+    limactl shell usva-mcp -- sudo /tmp/usva/mcp/bootstrap/bootstrap.sh
     limactl shell usva-mcp -- sudo cp /var/lib/k0s/pki/admin.conf "$KUBECONFIG"
 
     until kubectl get node; do
       sleep 1
     done
-
-    (
-      while true; do
-        echo """
-  apiVersion: apps/v1
-  kind: DaemonSet
-  metadata:
-    name: puller
-    namespace: kube-system
-    labels:
-      k8s-app: puller
-  spec:
-    selector:
-      matchLabels:
-        name: puller
-    template:
-      metadata:
-        labels:
-          name: puller
-      spec:
-        containers:
-        - name: k0s
-          image: k0sproject/k0s:v1.28.3-k0s.0
-          command:
-            - /usr/bin/tail
-            - -f
-            - /dev/null
-        - name: magico
-          image: mattipaksula/magico:5
-          command:
-            - /usr/bin/tail
-            - -f
-            - /dev/null
-  """ | kubectl apply -f - && break
-        sleep 1
-      done
-    ) 2>&1 | sed -le "s#^#puller: #;" &
-
-    (
-      until kubectl get secret beacon-cloudflare-pem ; do
-        kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem || true
-        sleep 1
-      done
-    ) 2>&1 | sed -le "s#^#beacon secret: #;" &
-
 
     (
       until kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml ; do
@@ -131,7 +90,15 @@ spec:
     echo ""
     echo "done"
   ;;
+  mcp)
+    exec limactl shell usva-mcp sudo su
+  ;;
   dev)
+    until kubectl get secret beacon-cloudflare-pem ; do
+      kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem || true
+      sleep 1
+    done
+
     while true; do
       skaffold dev || true
       sleep 1
@@ -170,6 +137,7 @@ spec:
     exec kubectl ${*:2}
   ;;
   worker)
+    docker compose build worker
     docker compose run -T worker &
     wait
   ;;

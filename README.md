@@ -20,4 +20,5 @@ docker run --rm --privileged -v /var/lib/k0s --cgroupns=host -v /sys/fs/cgroup:/
 
 - bin/usva reset
 - bin/usva dev
+- lens to mcp
 -

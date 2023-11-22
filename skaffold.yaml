@@ -5,6 +5,7 @@ metadata:
 build:
   local:
     useBuildkit: true
+    push: true
   artifacts:
     - image: mattipaksula/beacon
       context: components/beacon

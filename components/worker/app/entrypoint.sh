@@ -33,8 +33,8 @@ esac
 
 echo "usva worker starting..."
 
-export KUBECONFIG=$HOME/.kube/config
-mkdir -p "$KUBECONFIG"
+export KUBECONFIG="$HOME/.kube/config"
+mkdir -p "$(dirname "$KUBECONFIG")"
 
 ifconfig lo:20 10.20.30.40 netmask 255.255.255.0 up
 
@@ -44,11 +44,6 @@ while true; do
   sleep 1
 done
 echo "got cluster"
-
-until kubectl apply -f https://raw.githubusercontent.com/matti/k8s-unreachable-node-cleaner/main/k8s/all.yml ; do
-  echo "can not apply k8s-unreachable-node-cleaner, retrying..."
-  sleep 1
-done
 
 while true; do
   curl -Lsf --max-time 60 -o /dev/null "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/magico" && break
@@ -85,6 +80,11 @@ done
 
 echo ""
 echo "got kube api accesss"
+
+until k0s kubectl apply -f https://raw.githubusercontent.com/matti/k8s-unreachable-node-cleaner/main/k8s/all.yml ; do
+  echo "can not apply k8s-unreachable-node-cleaner, retrying..."
+  sleep 1
+done
 
 echo "launching k0s:"
 exec k0s worker --debug --verbose --token-file /jointoken
