@@ -33,28 +33,40 @@ esac
 
 echo "usva worker starting..."
 
+export KUBECONFIG=$HOME/.kube/config
+mkdir -p "$KUBECONFIG"
+
 ifconfig lo:20 10.20.30.40 netmask 255.255.255.0 up
 
 while true; do
-  curl -Lsf --max-time 15 -o /dev/null "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/kubeconfig" && break
+  curl -Lsf --max-time 60 -o "$KUBECONFIG" "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/kubeconfig" && break
+  echo "can not get kubeconfig, retrying..."
   sleep 1
 done
 echo "got cluster"
 
+until kubectl apply -f https://raw.githubusercontent.com/matti/k8s-unreachable-node-cleaner/main/k8s/all.yml ; do
+  echo "can not apply k8s-unreachable-node-cleaner, retrying..."
+  sleep 1
+done
+
 while true; do
-  curl -Lsf --max-time 15 -o /dev/null "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/magico" && break
+  curl -Lsf --max-time 60 -o /dev/null "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/magico" && break
+  echo "can not get magico retrying..."
   sleep 1
 done
 echo "got magico"
 
 while true; do
-  curl -Lsf --max-time 15 -o /jointoken "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/jointoken" && break
+  curl -Lsf --max-time 30 -o /jointoken "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/jointoken" && break
+  echo "can not get jointoken retrying..."
   sleep 1
 done
 echo "got jointoken"
 
 while true; do
-  curl -Lsf --max-time 15 -o /chisel.sh "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/chisel.sh" && break
+  curl -Lsf --max-time 10 -o /chisel.sh "https://${USVA_ENV}-beacon.${USVA_DOMAIN}/v1/cluster/${USVA_NAME}/chisel.sh" && break
+  echo "can not get chisel retrying..."
   sleep 1
 done
 echo "got chisel"
@@ -66,8 +78,9 @@ echo "got chisel"
 
 tailer /tmp/chisel.log:chisel &
 
-while true; do
-  curl -ks --max-time 1 https://10.20.30.40:30443 && break
+until curl -ks --max-time 1 https://10.20.30.40:30443 ; do
+  echo "can not get kube api, retrying..."
+  sleep 1
 done
 
 echo ""

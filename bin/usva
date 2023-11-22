@@ -34,7 +34,7 @@ case "$subcommand" in
 
     echo "clean"
   ;;
-  lima:mcp)
+  start)
     mkdir -p /tmp/usva/mcp/bootstrap
 
     if [[ ! -f vendor/arm64/k0s-v1.28.3 ]]; then
@@ -56,56 +56,64 @@ case "$subcommand" in
       sleep 1
     done
 
-    while true; do
-      echo """
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: puller
-  namespace: kube-system
-  labels:
-    k8s-app: puller
-spec:
-  selector:
-    matchLabels:
-      name: puller
-  template:
-    metadata:
-      labels:
+    (
+      while true; do
+        echo """
+  apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    name: puller
+    namespace: kube-system
+    labels:
+      k8s-app: puller
+  spec:
+    selector:
+      matchLabels:
         name: puller
-    spec:
-      containers:
-      - name: k0s
-        image: k0sproject/k0s:v1.28.3-k0s.0
-        command:
-          - /usr/bin/tail
-          - -f
-          - /dev/null
-      - name: magico
-        image: mattipaksula/magico:5
-        command:
-          - /usr/bin/tail
-          - -f
-          - /dev/null
-""" | kubectl apply -f - && break
-      sleep 1
-    done
+    template:
+      metadata:
+        labels:
+          name: puller
+      spec:
+        containers:
+        - name: k0s
+          image: k0sproject/k0s:v1.28.3-k0s.0
+          command:
+            - /usr/bin/tail
+            - -f
+            - /dev/null
+        - name: magico
+          image: mattipaksula/magico:5
+          command:
+            - /usr/bin/tail
+            - -f
+            - /dev/null
+  """ | kubectl apply -f - && break
+        sleep 1
+      done
+    ) 2>&1 | sed -le "s#^#puller: #;" &
 
-    until kubectl get secret beacon-cloudflare-pem ; do
-      kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem || true
-      sleep 1
-    done
+    (
+      until kubectl get secret beacon-cloudflare-pem ; do
+        kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem || true
+        sleep 1
+      done
+    ) 2>&1 | sed -le "s#^#beacon secret: #;" &
 
-    until kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml ; do
-      sleep 1
-    done
 
-    until kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml ; do
-      sleep 1
-    done
+    (
+      until kubectl apply -f https://docs.k0smotron.io/v0.7.0/install.yaml ; do
+        sleep 1
+      done
+    ) 2>&1 | sed -le "s#^#k0smotron: #;" &
 
-    while true; do
-      echo """
+    (
+      until kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml ; do
+        sleep 1
+      done
+
+      while true; do
+        echo """
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -114,11 +122,14 @@ metadata:
 spec:
   addresses:
   - 192.168.10.0/24
-""" | kubectl apply -f - && break
-      sleep 1
-    done
+  """ | kubectl apply -f - && break
+        sleep 1
+      done
+    ) 2>&1 | sed -le "s#^#metallb: #;" &
 
-    exec $0 dev
+    wait
+    echo ""
+    echo "done"
   ;;
   dev)
     while true; do
@@ -159,9 +170,39 @@ spec:
     exec kubectl ${*:2}
   ;;
   worker)
-    while true ; do
-      docker compose run --build worker || true
+    docker compose run -T worker &
+    wait
+  ;;
+  stress)
+    amount=$2
+    for ((i=0;i<$amount;i++)) ; do
+      (
+        while true; do
+          rampup=$(( i * 30 ))
+          echo "waiting $rampup before starting $i"
+          sleep $rampup
+          echo "starting $i"
+
+          (
+            exec $0 worker
+          ) >"/tmp/usva-stress-worker-${i}.log" 2>&1 &
+          worker_pid=$!
+
+          rand=$(( ( RANDOM % 360 ) + 60 ))
+          echo "waiting $rand before killing $i with pid $worker_pid"
+          sleep $rand
+
+          echo "killing $i with pid $worker_pid"
+          kill $worker_pid || true
+
+          echo "killed $i with pid $worker_pid, waiting"
+          wait || true
+          echo "waited $i with pid $worker_pid"
+        done
+      ) &
     done
+
+    tail -f /dev/null & wait
   ;;
   help)
     echo "help"

@@ -15,3 +15,9 @@ curl -k <https://matti-1-beacon.usva.io/v1/cluster/a/kubeconfig>
 ```
 docker run --rm --privileged -v /var/lib/k0s --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw -e USVA_DOMAIN=usva.io -e USVA_ENV=matti-1 -e USVA_NAME=pkilo mattipaksula/worker:1
 ```
+
+## demo
+
+- bin/usva reset
+- bin/usva dev
+-
