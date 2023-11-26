@@ -1,24 +1,11 @@
 # usva
 
-```console
-export KUBECONFIG=/tmp/usva/kubeconfig
-kubectl create secret generic beacon-cloudflare-pem --from-file=cloudflare/cert.pem
-skaffold dev
-```
+In conventional Kubernetes setups, a cluster is initiated by starting a control plane, which then awaits connections from worker nodes. This process requires upfront dedicated hardware, a networking setup, and planning for cluster state persistence, not to mention the transfer of join tokens to the actual worker nodes.
 
-```console
-chisel client --auth magico:sekret https://test-1.usva.io 6443:kmc-test-1:30443
-```
+Usva reverses this process - the control plane is initiated on-demand, triggered by the connection of worker nodes. As an open-source project, Usva builds on top of k0smotron (k0smotron.io), which deploys the k0s distribution (k0sproject.io) control planes. The Usva-enhanced k0smotron works in both on-prem and cloud environments, thanks to the newly introduced support for Cluster API.
 
-curl -k <https://matti-1-beacon.usva.io/v1/cluster/a/kubeconfig>
+Usva is a great fit for ephemeral clusters, such as those used for batch processing and handling spike workloads. This talk aims to clarifythe components, deployment, and use cases for Usva, accompanied by a live demo of mixed-environment workers forming a Kubernetes cluster in seconds.
 
-```
-docker run --rm --privileged -v /var/lib/k0s --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw -e USVA_DOMAIN=usva.io -e USVA_ENV=matti-1 -e USVA_NAME=pkilo mattipaksula/worker:1
-```
+## Setup
 
-## demo
-
-- bin/usva reset
-- bin/usva dev
-- lens to mcp
--
+Clone and `bin/usva start`, then `bin/usva dev` followed by `bin/usva worker`
